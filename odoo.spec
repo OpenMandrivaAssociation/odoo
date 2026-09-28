@@ -12,17 +12,30 @@ License:	LGPL-3.0-or-later
 Group:		Applications/Productivity
 URL:		https://www.odoo.com/
 Source0:	https://github.com/odoo/odoo/archive/17ff827a18248397342e73bb2bcac48e2b8e1027.tar.gz#/odoo-%{version}.tar.gz
-# Python packages that are not in the distribution, as source tarballs.
-# Built at package build time. No network and no prebuilt wheels.
-Source1:	odoo-%{version}-sdists.tar.xz
 Source2:	odoo.conf
 Source3:	odoo.sysusers
 Source4:	README.install.omv
-BuildRequires:	gcc
-BuildRequires:	lib64python-devel
-BuildRequires:	libev-devel
-BuildRequires:	python-pip
 BuildRequires:	python-setuptools
+BuildRequires:	python%{pyver}dist(geoip2)
+BuildRequires:	python%{pyver}dist(gevent)
+BuildRequires:	python%{pyver}dist(num2words)
+BuildRequires:	python%{pyver}dist(ofxparse)
+BuildRequires:	python%{pyver}dist(openpyxl)
+BuildRequires:	python%{pyver}dist(rjsmin)
+BuildRequires:	python%{pyver}dist(python-stdnum)
+BuildRequires:	python%{pyver}dist(vobject)
+BuildRequires:	python%{pyver}dist(xlsxwriter)
+BuildRequires:	python%{pyver}dist(zeep)
+Requires:	python-geoip2
+Requires:	python-gevent
+Requires:	python-num2words
+Requires:	python-ofxparse
+Requires:	python-openpyxl
+Requires:	python-rjsmin
+Requires:	python-python-stdnum
+Requires:	python-vobject
+Requires:	python-xlsxwriter
+Requires:	python-zeep
 Requires:	python
 Requires:	python-asn1crypto
 Requires:	python-attrs
@@ -89,22 +102,14 @@ The site is installed disabled.
 
 %prep
 %autosetup -p1 -n odoo-17ff827a18248397342e73bb2bcac48e2b8e1027
-mkdir -p sdists
-tar -C sdists -xf %{SOURCE1}
 
 %build
+%py_build
 
 %install
-# Missing modules go in a private directory. Everything else is imported
-# from the system Python path. pyusb is the system python-pyusb package.
-install -d %{buildroot}/usr/lib/odoo/python
-/usr/bin/pip install --target %{buildroot}/usr/lib/odoo/python --no-binary :all: --no-index \
-	--find-links sdists --no-build-isolation --no-deps \
-	geoip2 maxminddb gevent num2words ofxparse openpyxl et_xmlfile \
-	rjsmin python-stdnum vobject XlsxWriter zeep
-/usr/bin/pip install --target %{buildroot}/usr/lib/odoo/python --no-deps --no-build-isolation .
+%py_install
 
-addons=$(find %{buildroot}/usr/lib/odoo/python -type d -path '*/odoo/addons' | head -1)
+addons=$(find %{buildroot}%{python_sitelib} %{buildroot}%{python_sitearch} -type d -path '*/odoo/addons' | head -1)
 addons=${addons#%{buildroot}}
 
 install -d %{buildroot}%{_sysconfdir}/odoo
@@ -132,7 +137,6 @@ Wants=postgresql.service
 Type=simple
 User=odoo
 Group=odoo
-Environment=PYTHONPATH=/usr/lib/odoo/python
 ExecStart=/usr/bin/python -m odoo --config /etc/odoo/odoo.conf
 Restart=on-failure
 
@@ -172,8 +176,9 @@ chown odoo:odoo /var/lib/odoo /var/log/odoo || :
 
 %files
 %doc README.install.omv README.md LICENSE
-%dir /usr/lib/odoo
-/usr/lib/odoo/python
+%{python_sitelib}/odoo
+%{python_sitelib}/odoo-*.egg-info
+%{_bindir}/odoo
 %dir %attr(0750,odoo,odoo) /var/lib/odoo
 %dir %attr(0750,odoo,odoo) /var/log/odoo
 %dir %{_sysconfdir}/odoo
