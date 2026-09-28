@@ -1,0 +1,18 @@
+Odoo 20 Community listens on port 8069. Configuration is
+/etc/odoo/odoo.conf. Data and filestore live in /var/lib/odoo.
+
+1. Create the database role. Odoo creates databases itself, so the
+   role needs CREATEDB:
+
+   su - postgres -c "createuser -d -R -S odoo"
+   systemctl enable --now postgresql
+
+2. Set admin_passwd in /etc/odoo/odoo.conf. That password protects
+   database create/drop/backup on the web manager, not a company login.
+
+3. Start the service and open http://localhost:8069 :
+
+   systemctl enable --now odoo
+
+The first page asks for a database name, a master password (the
+admin_passwd above), and the first user of that database.
