@@ -61,8 +61,11 @@ Requires:	python-pyusb
 Requires:	python-qrcode
 Requires:	python-reportlab
 Requires:	python-requests
+Requires:	python-requests-file
 Requires:	python-requests-toolbelt
 Requires:	python-six
+Requires:	python-zope-event
+Requires:	python-zope-interface
 Requires:	python-urllib3
 Requires:	python-werkzeug
 Requires:	python-xlrd
@@ -92,16 +95,16 @@ tar -C sdists -xf %{SOURCE1}
 %build
 
 %install
-python -m venv --system-site-packages --without-pip %{buildroot}/usr/lib/odoo/venv
-/usr/bin/pip --python %{buildroot}/usr/lib/odoo/venv/bin/python install --no-binary :all: --no-index \
-	--find-links sdists --no-build-isolation \
-	geoip2 gevent num2words ofxparse openpyxl pyusb rjsmin python-stdnum \
-	vobject XlsxWriter zeep
-/usr/bin/pip --python %{buildroot}/usr/lib/odoo/venv/bin/python install --no-deps --no-build-isolation .
-find %{buildroot}/usr/lib/odoo/venv/bin -type f -exec \
-	sed -i '1s|^#!.*python.*|#!/usr/lib/odoo/venv/bin/python|' {} +
+# Missing modules go in a private directory. Everything else is imported
+# from the system Python path. pyusb is the system python-pyusb package.
+install -d %{buildroot}/usr/lib/odoo/python
+/usr/bin/pip install --target %{buildroot}/usr/lib/odoo/python --no-binary :all: --no-index \
+	--find-links sdists --no-build-isolation --no-deps \
+	geoip2 maxminddb gevent num2words ofxparse openpyxl et_xmlfile \
+	rjsmin python-stdnum vobject XlsxWriter zeep
+/usr/bin/pip install --target %{buildroot}/usr/lib/odoo/python --no-deps --no-build-isolation .
 
-addons=$(find %{buildroot}/usr/lib/odoo/venv -type d -path '*/odoo/addons' | head -1)
+addons=$(find %{buildroot}/usr/lib/odoo/python -type d -path '*/odoo/addons' | head -1)
 addons=${addons#%{buildroot}}
 
 install -d %{buildroot}%{_sysconfdir}/odoo
@@ -129,7 +132,8 @@ Wants=postgresql.service
 Type=simple
 User=odoo
 Group=odoo
-ExecStart=/usr/lib/odoo/venv/bin/odoo --config /etc/odoo/odoo.conf
+Environment=PYTHONPATH=/usr/lib/odoo/python
+ExecStart=/usr/bin/python -m odoo --config /etc/odoo/odoo.conf
 Restart=on-failure
 
 [Install]
@@ -169,7 +173,7 @@ chown odoo:odoo /var/lib/odoo /var/log/odoo || :
 %files
 %doc README.install.omv README.md LICENSE
 %dir /usr/lib/odoo
-/usr/lib/odoo/venv
+/usr/lib/odoo/python
 %dir %attr(0750,odoo,odoo) /var/lib/odoo
 %dir %attr(0750,odoo,odoo) /var/log/odoo
 %dir %{_sysconfdir}/odoo
