@@ -92,12 +92,12 @@ tar -C sdists -xf %{SOURCE1}
 %build
 
 %install
-python -m venv --system-site-packages %{buildroot}/usr/lib/odoo/venv
-%{buildroot}/usr/lib/odoo/venv/bin/pip install --no-binary :all: --no-index \
+python -m venv --system-site-packages --without-pip %{buildroot}/usr/lib/odoo/venv
+/usr/bin/pip --python %{buildroot}/usr/lib/odoo/venv/bin/python install --no-binary :all: --no-index \
 	--find-links sdists --no-build-isolation \
 	geoip2 gevent num2words ofxparse openpyxl pyusb rjsmin python-stdnum \
 	vobject XlsxWriter zeep
-%{buildroot}/usr/lib/odoo/venv/bin/pip install --no-deps --no-build-isolation .
+/usr/bin/pip --python %{buildroot}/usr/lib/odoo/venv/bin/python install --no-deps --no-build-isolation .
 find %{buildroot}/usr/lib/odoo/venv/bin -type f -exec \
 	sed -i '1s|^#!.*python.*|#!/usr/lib/odoo/venv/bin/python|' {} +
 
