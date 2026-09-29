@@ -109,11 +109,14 @@ The site is installed disabled.
 %install
 %py_install
 
-addons=$(find %{buildroot}%{python_sitelib} %{buildroot}%{python_sitearch} -type d -path '*/odoo/addons' | head -1)
-addons=${addons#%{buildroot}}
+# setup.py uses find_namespace_packages(), which also installs the
+# contributor-doc and packaging trees. The application addons live
+# next to the odoo package, not inside it.
+rm -rf %{buildroot}%{python_sitelib}/doc
+rm -rf %{buildroot}%{python_sitelib}/setup
 
 install -d %{buildroot}%{_sysconfdir}/odoo
-sed "s|@ADDONS@|${addons}|" %{SOURCE2} > %{buildroot}%{_sysconfdir}/odoo/odoo.conf
+sed "s|@ADDONS@|%{python_sitelib}/odoo/addons,%{python_sitelib}/addons|" %{SOURCE2} > %{buildroot}%{_sysconfdir}/odoo/odoo.conf
 
 install -d %{buildroot}%{_sysusersdir}
 install -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/odoo.conf
@@ -177,6 +180,7 @@ chown odoo:odoo /var/lib/odoo /var/log/odoo || :
 %files
 %doc README.install.omv README.md LICENSE
 %{python_sitelib}/odoo
+%{python_sitelib}/addons
 %{python_sitelib}/odoo-*.egg-info
 %{_bindir}/odoo
 %dir %attr(0750,odoo,odoo) /var/lib/odoo
